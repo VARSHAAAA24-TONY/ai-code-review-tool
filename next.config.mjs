@@ -3,15 +3,11 @@ const nextConfig = {
   reactStrictMode: false,
   swcMinify: true,
   typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
+    // ⚠️ Allow production builds even with type errors during migration
     ignoreBuildErrors: true,
   },
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
+    // ⚠️ Allow production builds even with lint errors during migration
     ignoreDuringBuilds: true,
   },
   compiler: {
@@ -25,10 +21,9 @@ const nextConfig = {
       },
     ],
   },
-  experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion'],
-  },
+  // Removed experimental optimizePackageImports to ensure maximum build stability
 };
 
 export default nextConfig;
+
 
