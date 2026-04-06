@@ -8,10 +8,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
 
   const handleGoogleLogin = async () => {
+    // Dynamically calculate the redirect URL to work across Local, Mobile, and Vercel
+    const getURL = () => {
+      let url =
+        process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this for your production ID
+        process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set on Vercel
+        window.location.origin;
+      
+      // Add trailing slash and protocol if missing
+      url = url.includes("http") ? url : `https://${url}`;
+      return `${url}/auth/callback`;
+    };
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getURL(),
       },
     });
 
