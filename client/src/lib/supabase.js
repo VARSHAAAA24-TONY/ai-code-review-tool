@@ -8,8 +8,20 @@ const isMockMode = !supabaseUrl || supabaseUrl.includes('placeholder');
 
 export const supabase = isMockMode ? {
   auth: {
-    getSession: async () => ({ data: { session: { user: { id: 'guest-node-01', email: 'guest@forensic.core' } } }, error: null }),
-    getUser: async () => ({ data: { user: { id: 'guest-node-01', email: 'guest@forensic.core' } }, error: null }),
+    getSession: async () => {
+      const isGuest = localStorage.getItem('sb-guest-session');
+      return { 
+        data: { session: isGuest ? { user: { id: 'guest-node-01', email: 'guest@forensic.core' } } : null }, 
+        error: null 
+      };
+    },
+    getUser: async () => {
+      const isGuest = localStorage.getItem('sb-guest-session');
+      return { 
+        data: { user: isGuest ? { id: 'guest-node-01', email: 'guest@forensic.core' } : null }, 
+        error: null 
+      };
+    },
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     signInWithOAuth: async () => ({ error: null }),
     signOut: async () => { 
