@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   ShieldCheck, 
   Zap, 
@@ -17,31 +17,31 @@ import { supabase } from '../lib/supabase';
 const Auth = () => {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
-  const [isAuthorizing, setIsAuthorizing] = React.useState(false);
-  const [authStep, setAuthStep] = React.useState(1);
 
   const handleGoogleLogin = async () => {
-    setIsAuthorizing(true);
-    setAuthStep(1);
-    
-    // Forensic Simulator: Mocking the Google Handshake delay
-    setTimeout(() => setAuthStep(2), 1000);
-    setTimeout(() => setAuthStep(3), 2000);
-    setTimeout(() => {
-      localStorage.setItem('sb-guest-session', 'true');
-      localStorage.setItem('sb-mock-email', 'authorized.user@google.com');
-      window.location.reload();
-    }, 3500);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error logging in with Google:', error.message);
+    }
   };
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     try {
-      localStorage.setItem('sb-guest-session', 'true');
-      localStorage.setItem('sb-mock-email', email);
-      window.location.reload();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
     } catch (error) {
-      console.error('Email handshake failure:', error.message);
+      console.error('Login failure:', error.message);
     }
   };
 
@@ -53,49 +53,6 @@ const Auth = () => {
       {/* Abstract Mint Glows */}
       <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-[#00FFCC]/10 blur-[120px] rounded-full pointer-events-none"></div>
       <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] bg-[#12B886]/10 blur-[120px] rounded-full pointer-events-none"></div>
-
-      <AnimatePresence>
-        {isAuthorizing && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-[#1A1D1E]/95 backdrop-blur-xl flex items-center justify-center p-8"
-          >
-            <div className="max-w-md w-full space-y-12 text-center">
-              <div className="relative inline-block">
-                <motion.div 
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                  className="w-32 h-32 border-2 border-[#00FFCC]/20 border-t-[#00FFCC] rounded-full"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                   <img src="https://www.gstatic.com/lamda/images/google_logo_color_24dp.v6.png" className="w-10 h-10" alt="G" />
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <h2 className="text-2xl font-black text-white tracking-widest uppercase italic">
-                  {authStep === 1 && "Verifying_Provider..."}
-                  {authStep === 2 && "Secure_Handshake_Active"}
-                  {authStep === 3 && "Synchronizing_Core_Session"}
-                </h2>
-                <div className="flex justify-center gap-3">
-                  {[1, 2, 3].map((step) => (
-                    <div 
-                      key={step}
-                      className={`h-1.5 w-12 rounded-full transition-all duration-500 ${authStep >= step ? 'bg-[#00FFCC] shadow-[0_0_10px_#00FFCC]' : 'bg-[#12B886]/10'}`}
-                    />
-                  ))}
-                </div>
-                <p className="text-[10px] text-[#12B886] font-bold uppercase tracking-[4px] opacity-60">
-                   Protocol // Google_OAuth_v4.2
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
