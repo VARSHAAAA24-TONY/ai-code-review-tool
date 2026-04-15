@@ -25,6 +25,17 @@ app.use(cors());
 app.use(helmet());
 app.use(express.json());
 
+// Middleware for Logging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// Root Route for Diagnostics
+app.get('/', (req, res) => {
+  res.send('AI_CODE_REVIEW_CORE_ACTIVE');
+});
+
 // Health Check Route
 app.get('/api/health', (req, res) => {
   res.json({
