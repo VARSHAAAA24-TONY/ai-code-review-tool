@@ -3,26 +3,17 @@ import {
   Users, 
   ShieldCheck, 
   Mail, 
-  Calendar, 
-  BarChart3, 
-  TrendingUp, 
-  AlertTriangle, 
   Loader2, 
-  Terminal, 
   Search, 
   Activity, 
   Globe, 
   Zap, 
-  Cpu,
   MoreVertical,
   ShieldAlert,
-  ArrowUpRight,
   Settings,
   Download,
-  Database,
   Lock,
-  UserPlus,
-  ArrowRight
+  UserPlus
 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';

@@ -4,18 +4,14 @@ import {
   LayoutDashboard, 
   Search, 
   History, 
-  Settings, 
   ShieldCheck, 
   LogOut,
-  Terminal,
   Activity,
   Cpu,
-  CodeXml,
-  Database,
-  AlertTriangle,
-  Radiation
+  Database
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { auth } from '../../lib/firebase';
+import { signOut } from 'firebase/auth';
 import { motion } from 'framer-motion';
 
 const Sidebar = () => {
@@ -23,7 +19,8 @@ const Sidebar = () => {
   const location = useLocation();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('sb-guest-session');
+    await signOut(auth);
     navigate('/auth');
   };
 

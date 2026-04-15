@@ -7,26 +7,19 @@ import {
   Zap, 
   Code, 
   ShieldCheck, 
-  TrendingUp, 
   Cpu, 
   Activity, 
   Database, 
-  FileText,
   ArrowUpRight,
-  Clock,
-  ExternalLink,
   CheckCircle2,
   Sparkles,
-  Command,
   ChevronRight,
   ArrowRight,
-  Calendar,
-  Radiation,
-  AlertTriangle,
-  Terminal
+  Calendar
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { auth, db } from '../lib/firebase';
+import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 
 const StatCard = ({ icon: Icon, label, value, trend, trendValue, i }) => (
   <motion.div 
@@ -67,21 +60,28 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchRecentReviews = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('audit_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (!error) setReviews(data || []);
-      setLoading(false);
+      try {
+        const q = query(
+          collection(db, 'audit_history'),
+          where('user_id', '==', currentUser.uid)
+        );
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 5);
+        setReviews(data);
+      } catch (err) {
+        console.error('Failed to fetch recent reviews:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchRecentReviews();

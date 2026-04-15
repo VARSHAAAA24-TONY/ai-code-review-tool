@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { supabase } from './lib/supabase';
+import { auth } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import Auth from './pages/Auth';
 import DashboardLayout from './components/layout/DashboardLayout';
 import './index.css';
@@ -20,39 +21,21 @@ function App() {
 
   useEffect(() => {
     const guestSession = localStorage.getItem('sb-guest-session');
-    
+
     if (guestSession) {
-      setSession({ user: { id: 'guest-node-01', email: 'guest@forensic.core' } });
+      setSession({ uid: 'guest-node-01', email: 'guest@forensic.core' });
       setLoading(false);
       return;
     }
 
-    // Forensic Timeout: Don't let a dead DB hang the UI
-    const loadingTimeout = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      clearTimeout(loadingTimeout);
-      setLoading(false);
-    }).catch(() => {
-      clearTimeout(loadingTimeout);
-      setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!localStorage.getItem('sb-guest-session')) {
-        setSession(session);
+        setSession(user || null);
       }
+      setLoading(false);
     });
 
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(loadingTimeout);
-    };
+    return () => unsubscribe();
   }, []);
 
   if (error) {

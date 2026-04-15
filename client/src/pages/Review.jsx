@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Code2, 
   Layout as GithubIcon, 
   Zap, 
   AlertCircle, 
@@ -9,21 +8,13 @@ import {
   Download,
   Bug, 
   Sparkles, 
-  BookOpen, 
   Terminal, 
-  ChevronRight, 
   Activity, 
-  Cpu, 
-  Search, 
   Database, 
   FileText, 
-  Layout,
-  ExternalLink,
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
-  Info,
-  Clock,
   ArrowRight,
   Upload
 } from 'lucide-react';
@@ -33,7 +24,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { githubService } from '../services/githubService';
 import DiffView from '../components/common/DiffView';
-import { supabase } from '../lib/supabase';
+import { auth, db } from '../lib/firebase';
+import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 const Review = () => {
@@ -53,16 +45,15 @@ const Review = () => {
         const fetchingToast = toast.loading('Reconstructing archived audit logic...');
         setAnalyzing(true);
         try {
-          const { data, error } = await supabase.from('audit_history').select('*').eq('id', id).single();
-          if (error) throw error;
-          
-          if (data) {
-            setContent(data.code_input);
-            setGithubUrl(data.repo_url !== 'Direct Input' ? data.repo_url : '');
-            setInputMode(data.repo_url !== 'Direct Input' ? 'github' : 'paste');
-            setResult({ ...data.analysis_result, raw_code: data.code_input });
-            toast.success('Archived telemetry restored successfully.', { id: fetchingToast });
-          }
+          const docRef = doc(db, 'audit_history', id);
+          const docSnap = await getDoc(docRef);
+          if (!docSnap.exists()) throw new Error('Audit not found in archive.');
+          const data = docSnap.data();
+          setContent(data.code_input);
+          setGithubUrl(data.repo_url !== 'Direct Input' ? data.repo_url : '');
+          setInputMode(data.repo_url !== 'Direct Input' ? 'github' : 'paste');
+          setResult({ ...data.analysis_result, raw_code: data.code_input });
+          toast.success('Archived telemetry restored successfully.', { id: fetchingToast });
         } catch (err) {
           toast.error(`Archive Recovery Failed: ${err.message}`, { id: fetchingToast });
           navigate('/review', { replace: true });
@@ -115,7 +106,7 @@ const Review = () => {
       toast.success('Analysis stream stabilized.', { id: fetchingToast });
       addLog('Analysis stream stabilized.');
 
-      // Supabase saving has been abstracted to saveAudit() which fires before navigation.
+      // Audit data is saved via saveAudit() which fires on manual save button click.
       
       setResult({ ...analysisData, raw_code: codeToAnalyze }); // Cache code for database injection
       setAnalyzing(false);
@@ -142,20 +133,14 @@ const Review = () => {
   const saveAudit = async (analysisResult, codeInput, currentUser) => {
     try {
       const savingToast = toast.loading('Synchronizing with Database...');
-      
-      const { error: dbError } = await supabase.from('audit_history').insert([
-        {
-          user_id: currentUser.id,
-          code_input: codeInput,
-          repo_url: inputMode === 'github' ? githubUrl : 'Direct Input',
-          analysis_result: analysisResult,
-          score: analysisResult.score,
-          created_at: new Date().toISOString()
-        }
-      ]);
-
-      if (dbError) throw dbError;
-      
+      await addDoc(collection(db, 'audit_history'), {
+        user_id: currentUser.uid,
+        code_input: codeInput,
+        repo_url: inputMode === 'github' ? githubUrl : 'Direct Input',
+        analysis_result: analysisResult,
+        score: analysisResult.score,
+        created_at: new Date().toISOString()
+      });
       toast.success('Audit successfully persisted to ledger!', { id: savingToast });
       return true;
     } catch (err) {
@@ -167,15 +152,12 @@ const Review = () => {
 
   const handleManualSave = async () => {
     if (!result) return;
-    
-    // Check auth
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
       toast.error('Authentication required to save audits.');
       return;
     }
-
-    await saveAudit(result, result.raw_code || content, user);
+    await saveAudit(result, result.raw_code || content, currentUser);
   };
 
   const handleFileUpload = (e) => {

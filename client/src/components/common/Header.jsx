@@ -1,20 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Bell, User, ChevronDown, Sparkles, Command, ShieldCheck, Radiation } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { motion } from 'framer-motion';
+import { Search, Bell, User, Sparkles, ShieldCheck, LogOut } from 'lucide-react';
+import { auth } from '../../lib/firebase';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 
 const Header = () => {
   const [user, setUser] = useState(null);
   const [scrolled, setScrolled] = useState(false);
 
+  const handleLogout = async () => {
+    localStorage.removeItem('sb-guest-session');
+    await signOut(auth);
+    window.location.href = '/auth';
+  };
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
     });
 
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   return (
@@ -59,7 +68,7 @@ const Header = () => {
         <div className="flex items-center gap-6 pl-4 group cursor-pointer relative z-10">
           <div className="text-right hidden md:block space-y-1">
             <p className="text-[12px] font-bold text-white leading-none tracking-tight group-hover:text-[#00FFCC] transition-colors">
-              {user?.email?.split('@')[0] || 'GUEST_USER'}
+              {user?.displayName || user?.email?.split('@')[0] || 'GUEST_USER'}
             </p>
             <div className="flex items-center justify-end gap-2">
                <span className="w-1.5 h-1.5 rounded-full bg-[#12B886]"></span>
@@ -68,8 +77,8 @@ const Header = () => {
           </div>
           <div className="relative">
             <div className="w-14 h-14 bg-[#1A1D1E] border border-[#12B886]/20 rounded-2xl flex items-center justify-center group-hover:border-[#00FFCC] transition-all duration-500 overflow-hidden shadow-xl">
-               {user?.user_metadata?.avatar_url ? (
-                 <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+               {user?.photoURL ? (
+                 <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                ) : (
                  <User className="text-[#B0B8B9] group-hover:text-[#00FFCC] transition-colors" size={24} />
                )}
@@ -77,6 +86,14 @@ const Header = () => {
             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00FFCC] border-2 border-[#1A1D1E] rounded-full"></div>
           </div>
         </div>
+
+        <button 
+          onClick={handleLogout}
+          title="Sign Out/Switch User"
+          className="p-4 text-[#B0B8B9] hover:text-[#FF3366] hover:bg-[#FF3366]/5 transition-all border border-transparent hover:border-[#FF3366]/10 rounded-2xl flex"
+        >
+          <LogOut size={20} />
+        </button>
       </div>
     </header>
   );
