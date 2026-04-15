@@ -86,7 +86,6 @@ app.post('/api/analyze', async (req, res) => {
 
 // Admin Route - Analytics
 app.get('/api/admin/stats', (req, res) => {
-  // In a real app, these would come from DB
   res.json({
     totalUsers: 142,
     totalReviews: 843,
@@ -111,5 +110,3 @@ if (process.env.NODE_ENV !== 'production' && !process.env.NETLIFY) {
 
 export const handler = serverless(app);
 export default app;
-
-

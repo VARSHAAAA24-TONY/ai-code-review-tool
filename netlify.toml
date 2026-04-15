@@ -3,7 +3,6 @@
   publish = "client/dist"
 
 [functions]
-  directory = "server"
   node_bundler = "esbuild"
 
 [[plugins]]
